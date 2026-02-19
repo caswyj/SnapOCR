@@ -4,6 +4,7 @@ OCR text extraction with LaTeX conversion support.
 
 import os
 import re
+import sys
 from typing import Optional, Tuple
 from PIL import Image
 
@@ -11,6 +12,71 @@ try:
     import pytesseract
 except ImportError:
     pytesseract = None
+
+
+def get_bundled_tesseract_path() -> Optional[str]:
+    """
+    Get the path to bundled Tesseract executable if running as a packaged app.
+
+    Returns:
+        Path to tesseract executable or None if not found.
+    """
+    # Check if running as a PyInstaller bundle
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+
+        # Platform-specific executable name
+        if sys.platform == 'win32':
+            tesseract_exe = os.path.join(base_path, 'tesseract', 'tesseract.exe')
+        else:
+            tesseract_exe = os.path.join(base_path, 'tesseract', 'tesseract')
+
+        if os.path.exists(tesseract_exe):
+            return tesseract_exe
+
+    return None
+
+
+def get_bundled_tessdata_path() -> Optional[str]:
+    """
+    Get the path to bundled tessdata directory if running as a packaged app.
+
+    Returns:
+        Path to tessdata directory or None if not found.
+    """
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+        tessdata_path = os.path.join(base_path, 'tessdata')
+        if os.path.exists(tessdata_path):
+            return tessdata_path
+
+    return None
+
+
+def setup_tesseract() -> Optional[str]:
+    """
+    Setup Tesseract paths for bundled or system installation.
+
+    Returns:
+        Path to Tesseract executable or None.
+    """
+    if pytesseract is None:
+        return None
+
+    # First, check for bundled Tesseract
+    bundled_path = get_bundled_tesseract_path()
+    if bundled_path:
+        pytesseract.pytesseract.tesseract_cmd = bundled_path
+
+        # Set tessdata path for bundled installation
+        tessdata_path = get_bundled_tessdata_path()
+        if tessdata_path:
+            os.environ['TESSDATA_PREFIX'] = tessdata_path + os.sep
+
+        return bundled_path
+
+    # Fall back to system Tesseract
+    return None
 
 # Lazy-loaded LaTeX OCR model
 _latex_model = None
@@ -111,7 +177,10 @@ def extract_text(
     if pytesseract is None:
         raise ImportError("pytesseract is not installed. Install with: pip install pytesseract")
 
-    # Set Tesseract path if provided
+    # Setup bundled Tesseract first (if available)
+    setup_tesseract()
+
+    # Set Tesseract path if explicitly provided
     if tesseract_path:
         pytesseract.pytesseract.tesseract_cmd = tesseract_path
 

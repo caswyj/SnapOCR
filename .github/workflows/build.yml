@@ -14,6 +14,10 @@ on:
 permissions:
   contents: write
 
+env:
+  TESSERACT_VERSION: '5.3.3'
+  TESSDATA_LANGS: 'eng,chi_sim'
+
 jobs:
   build-macos:
     runs-on: macos-latest
@@ -32,9 +36,64 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Download Tesseract for macOS
+        run: |
+          brew install tesseract tesseract-lang
+
+          # Create tesseract directory in project
+          mkdir -p tesseract
+
+          # Copy tesseract binary
+          cp $(which tesseract) tesseract/
+
+          # Make it relocatable (remove hardcoded paths)
+          install_name_tool -change /opt/homebrew/opt/leptonica/lib/libleptonica.5.dylib @executable_path/../lib/libleptonica.5.dylib tesseract/tesseract 2>/dev/null || true
+
+          # Copy required libraries
+          mkdir -p lib
+          TESS_LIBS=$(otool -L $(which tesseract) | grep -E '/opt/homebrew|/usr/local' | awk '{print $1}')
+          for lib in $TESS_LIBS; do
+            lib_name=$(basename "$lib")
+            cp "$lib" "lib/$lib_name" 2>/dev/null || true
+          done
+
+          # Copy leptonica and dependencies
+          brew deps tesseract | while read dep; do
+            if [ -d "/opt/homebrew/opt/$dep/lib" ]; then
+              cp /opt/homebrew/opt/$dep/lib/*.dylib lib/ 2>/dev/null || true
+            fi
+          done
+
+          # Copy tessdata
+          mkdir -p tessdata
+          cp /opt/homebrew/share/tessdata/eng.traineddata tessdata/
+          cp /opt/homebrew/share/tessdata/chi_sim.traineddata tessdata/ 2>/dev/null || curl -L -o tessdata/chi_sim.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata
+
       - name: Build macOS app
         run: |
-          python -m PyInstaller SnapOCR.spec
+          python -m PyInstaller \
+            --name "SnapOCR" \
+            --windowed \
+            --onedir \
+            --hidden-import "PIL._tkinter_finder" \
+            --hidden-import "pytesseract" \
+            --hidden-import "mss" \
+            --hidden-import "snapocr" \
+            --hidden-import "snapocr.main" \
+            --hidden-import "snapocr.core.config" \
+            --hidden-import "snapocr.core.ocr" \
+            --hidden-import "snapocr.core.clipboard" \
+            --hidden-import "snapocr.platform.base" \
+            --hidden-import "snapocr.platform.macos" \
+            --hidden-import "snapocr.platform.macos_native" \
+            --add-data "snapocr:snapocr" \
+            --add-data "tesseract:tesseract" \
+            --add-data "tessdata:tessdata" \
+            --add-binary "lib:lib" \
+            --osx-bundle-identifier "com.snapocr.app" \
+            --target-arch arm64 \
+            run.py
+
           cp resources/Info.plist dist/SnapOCR.app/Contents/Info.plist
 
       - name: Codesign app (ad-hoc)
@@ -63,11 +122,43 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
+
+      - name: Download Tesseract for Windows
+        run: |
+          # Download Tesseract installer from UB Mannheim
+          Invoke-WebRequest -Uri "https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-${env:TESSERACT_VERSION}.20231005.exe" -OutFile "tesseract-setup.exe"
+
+          # Extract using 7zip
+          7z x tesseract-setup.exe -o"tesseract_extract" -y
+
+          # Create tesseract directory
+          New-Item -ItemType Directory -Force -Path "tesseract"
+          New-Item -ItemType Directory -Force -Path "tessdata"
+
+          # Copy tesseract executable and DLLs
+          Copy-Item "tesseract_extract/tesseract.exe" "tesseract/" -ErrorAction SilentlyContinue
+          Copy-Item "tesseract_extract/*.dll" "tesseract/" -ErrorAction SilentlyContinue
+
+          # Find and copy from Program Files if installer ran
+          if (Test-Path "C:\Program Files\Tesseract-OCR") {
+            Copy-Item "C:\Program Files\Tesseract-OCR\tesseract.exe" "tesseract/"
+            Copy-Item "C:\Program Files\Tesseract-OCR\*.dll" "tesseract/"
+            Copy-Item "C:\Program Files\Tesseract-OCR\tessdata\eng.traineddata" "tessdata/"
+            Copy-Item "C:\Program Files\Tesseract-OCR\tessdata\chi_sim.traineddata" "tessdata/" -ErrorAction SilentlyContinue
+          }
+
+          # Download language data if missing
+          if (-not (Test-Path "tessdata/chi_sim.traineddata")) {
+            Invoke-WebRequest -Uri "https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata" -OutFile "tessdata/chi_sim.traineddata"
+          }
+
+        env:
+          TESSERACT_VERSION: '5.3.3'
 
       - name: Build Windows executable
         run: |
@@ -86,6 +177,8 @@ jobs:
             --hidden-import "snapocr.platform.base" `
             --hidden-import "snapocr.platform.windows" `
             --add-data "snapocr;snapocr" `
+            --add-data "tesseract;tesseract" `
+            --add-data "tessdata;tessdata" `
             --exclude-module "pynput" `
             --exclude-module "pyautogui" `
             run.py
@@ -110,13 +203,30 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk scrot
+          sudo apt-get install -y python3-tk scrot tesseract-ocr tesseract-ocr-eng tesseract-ocr-chi-sim libtesseract-dev libleptonica-dev
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
+
+      - name: Prepare Tesseract bundle
+        run: |
+          mkdir -p tesseract tessdata
+
+          # Copy tesseract binary
+          cp $(which tesseract) tesseract/
+
+          # Copy tessdata
+          cp /usr/share/tesseract-ocr/*/tessdata/eng.traineddata tessdata/
+          cp /usr/share/tesseract-ocr/*/tessdata/chi_sim.traineddata tessdata/
+
+          # Copy required shared libraries
+          mkdir -p lib
+          ldd $(which tesseract) | grep "=> /" | awk '{print $3}' | while read lib; do
+            cp "$lib" lib/ 2>/dev/null || true
+          done
 
       - name: Build Linux executable
         run: |
@@ -134,6 +244,9 @@ jobs:
             --hidden-import "snapocr.platform.base" \
             --hidden-import "snapocr.platform.linux" \
             --add-data "snapocr:snapocr" \
+            --add-data "tesseract:tesseract" \
+            --add-data "tessdata:tessdata" \
+            --add-binary "lib:lib" \
             --exclude-module "pynput" \
             --exclude-module "pyautogui" \
             run.py
@@ -189,15 +302,19 @@ jobs:
             ## SnapOCR ${{ steps.version.outputs.version }}
 
             ### Downloads
-            - **macOS**: `SnapOCR-macOS-arm64.zip` (Apple Silicon)
-            - **Windows**: `SnapOCR.exe`
-            - **Linux**: `SnapOCR`
+            - **macOS**: `SnapOCR-macOS-arm64.zip` (Apple Silicon, includes Tesseract)
+            - **Windows**: `SnapOCR.exe` (includes Tesseract)
+            - **Linux**: `SnapOCR` (includes Tesseract)
 
-            ### Requirements
-            - **Tesseract OCR** must be installed on the target machine
-              - macOS: `brew install tesseract tesseract-lang`
-              - Windows: Download from [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki)
-              - Linux: `sudo apt install tesseract-ocr tesseract-ocr-chi-sim`
+            ### Features
+            - Tesseract OCR bundled - no external installation required
+            - Supports English and Chinese (Simplified) OCR
+            - Copy recognized text to clipboard with one click
+
+            ### System Requirements
+            - **macOS**: macOS 10.15+ (Apple Silicon)
+            - **Windows**: Windows 10/11 (64-bit)
+            - **Linux**: glibc 2.31+ (Ubuntu 20.04+)
 
             ### Changes
             See commit history for details.
