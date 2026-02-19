@@ -25,7 +25,7 @@ fi
 
 # Create .app bundle
 # Note: --onedir is recommended for macOS .app bundles (not --onefile)
-# Icon is optional - remove --icon if you don't have an icon file
+# Using run.py as entry point to handle imports correctly when bundled
 python3 -m PyInstaller \
     --name "SnapOCR" \
     --windowed \
@@ -35,8 +35,17 @@ python3 -m PyInstaller \
     --hidden-import "pynput" \
     --hidden-import "pyautogui" \
     --hidden-import "mss" \
+    --hidden-import "snapocr" \
+    --hidden-import "snapocr.main" \
+    --hidden-import "snapocr.core.config" \
+    --hidden-import "snapocr.core.ocr" \
+    --hidden-import "snapocr.core.clipboard" \
+    --hidden-import "snapocr.platform.base" \
+    --hidden-import "snapocr.platform.macos" \
+    --hidden-import "snapocr.hotkey.manager" \
+    --add-data "snapocr:snapocr" \
     --osx-bundle-identifier "com.snapocr.app" \
-    snapocr/main.py
+    run.py
 
 echo ""
 echo "Build complete!"
