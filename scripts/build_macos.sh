@@ -24,12 +24,12 @@ if ! python3 -c "import PyInstaller" 2>/dev/null; then
 fi
 
 # Create .app bundle
-pyinstaller \
+# Note: --onedir is recommended for macOS .app bundles (not --onefile)
+# Icon is optional - remove --icon if you don't have an icon file
+python3 -m PyInstaller \
     --name "SnapOCR" \
     --windowed \
-    --onefile \
-    --icon resources/icon.icns \
-    --add-data "resources/tessdata:resources/tessdata" \
+    --onedir \
     --hidden-import "PIL._tkinter_finder" \
     --hidden-import "pytesseract" \
     --hidden-import "pynput" \
