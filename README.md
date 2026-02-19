@@ -9,11 +9,29 @@ A cross-platform tool that captures a screenshot region, extracts text using OCR
 - **Multi-Language OCR**: English + Chinese (Simplified) support out of the box
 - **LaTeX Conversion**: Convert mathematical formulas to LaTeX notation
 - **Clipboard Integration**: Automatically copies extracted text to clipboard
-- **Auto-Paste**: Optionally simulate Ctrl+V / Cmd+V after copying
-- **Global Hotkeys**: Configure keyboard shortcuts to trigger capture
-- **Easy Installation**: Package as standalone executable
+- **Self-Contained**: Tesseract OCR bundled - no external dependencies required
+- **System Shortcuts**: Use native OS keyboard shortcuts to launch
+
+## Download
+
+Download the latest release from [GitHub Releases](https://github.com/caswyj/SnapOCR/releases):
+
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `SnapOCR-macOS-arm64.zip` |
+| Windows | `SnapOCR.exe` |
+| Linux | `SnapOCR` |
 
 ## Quick Start
+
+### From Release (Recommended)
+
+1. Download the appropriate file for your platform
+2. **macOS**: Extract and move `SnapOCR.app` to Applications
+3. **Windows**: Run `SnapOCR.exe` directly
+4. **Linux**: `chmod +x SnapOCR && ./SnapOCR`
+
+### From Source
 
 ```bash
 # Clone the repository
@@ -27,98 +45,30 @@ pip install -r requirements.txt
 python -m snapocr
 ```
 
-## Installation
-
-### Prerequisites
-
-#### Tesseract OCR
-
-**macOS:**
-```bash
-brew install tesseract tesseract-lang
-```
-
-**Windows:**
-Download from [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki) and add to PATH.
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt install tesseract-ocr tesseract-ocr-chi-sim
-```
-
-#### Python Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Optional: LaTeX Conversion
-
-For math formula to LaTeX conversion, uncomment these lines in `requirements.txt`:
-```
-pix2tex>=0.1.0
-torch>=1.9.0
-transformers>=4.0.0
-```
-
-Then reinstall:
-```bash
-pip install -r requirements.txt
-```
-
 ## Usage
 
 ### Basic Usage
 
-```bash
-# Capture region and extract text
-python -m snapocr
-
-# Or using the module directly
-python -c "from snapocr import SnapOCR; SnapOCR().run_once()"
-```
+Run the application, then:
+1. Select a region on your screen by dragging
+2. Release to capture and perform OCR
+3. Extracted text is automatically copied to clipboard
 
 ### Command Line Options
 
 ```
-usage: snapocr [-h] [--daemon] [--setup-hotkey] [--hotkey HOTKEY] [--lang LANG]
-               [--latex] [--no-latex] [--auto-paste] [--no-auto-paste]
-               [--config CONFIG] [--version]
+usage: snapocr [-h] [--lang LANG] [--latex] [--no-latex] [--config CONFIG] [--version]
 
 SnapOCR - Cross-platform screenshot OCR tool
 
 options:
   -h, --help            show this help message and exit
-  --daemon, -d          Run in daemon mode with hotkey listener
-  --setup-hotkey, -s    Run the hotkey setup wizard
-  --hotkey HOTKEY, -k HOTKEY
-                        Override hotkey (e.g., "ctrl+shift+o")
   --lang LANG, -l LANG  OCR language (e.g., "eng", "chi_sim", "eng+chi_sim")
   --latex               Enable LaTeX conversion for math formulas
   --no-latex            Disable LaTeX conversion
-  --auto-paste          Enable auto-paste after copying
-  --no-auto-paste       Disable auto-paste
   --config CONFIG, -c CONFIG
                         Path to config file
   --version, -v         show program's version number and exit
-```
-
-### Daemon Mode
-
-Run in the background with a global hotkey:
-
-```bash
-python -m snapocr --daemon
-```
-
-Press `Ctrl+Shift+O` (default) to trigger capture. Press `Ctrl+C` to exit.
-
-### Hotkey Setup
-
-Configure your preferred keyboard shortcut:
-
-```bash
-python -m snapocr --setup-hotkey
 ```
 
 ### Python API
@@ -129,16 +79,84 @@ from snapocr import SnapOCR, Config
 # Create app with custom config
 config = Config()
 config.language = 'eng+chi_sim'
-config.auto_paste = True
 config.latex_conversion = True
 
 app = SnapOCR(config)
 
-# Single capture
+# Capture and extract text
 text = app.capture_and_extract()
+print(f"Extracted: {text}")
+```
 
-# Or run daemon mode
-app.run_daemon()
+## Setting Up Keyboard Shortcuts
+
+Use your operating system's native shortcut features to launch SnapOCR with a keyboard shortcut.
+
+### macOS
+
+**Method 1: Shortcuts.app (Recommended, macOS 12+)**
+
+1. Open **Shortcuts** app
+2. Click **+** to create a new shortcut
+3. Search for "Open App" and select it
+4. Choose **SnapOCR**
+5. Click the **ℹ** button → **Add Keyboard Shortcut**
+6. Press your desired combination (e.g., `⌘⇧O`)
+7. Name the shortcut "SnapOCR"
+
+**Method 2: Automator + Services**
+
+1. Open **Automator** → File → New → Quick Action
+2. Set "Workflow receives" to "no input"
+3. Add "Run Shell Script" action
+4. Enter: `/Applications/SnapOCR.app/Contents/MacOS/SnapOCR`
+5. Save as "SnapOCR Capture"
+6. Go to **System Settings** → **Keyboard** → **Keyboard Shortcuts** → **Services**
+7. Find "SnapOCR Capture" and set your shortcut
+
+### Windows
+
+**Method 1: Shortcut Properties**
+
+1. Right-click `SnapOCR.exe` → Create shortcut
+2. Right-click the shortcut → Properties
+3. Click in the "Shortcut key" field
+4. Press your combination (e.g., `Ctrl+Shift+O`)
+5. Click OK
+
+**Method 2: PowerToys (Recommended)**
+
+1. Install [Microsoft PowerToys](https://github.com/microsoft/PowerToys)
+2. Open PowerToys → Keyboard Manager
+3. Click "Remap a shortcut"
+4. Add new mapping:
+   - Shortcut: `Ctrl + Shift + O`
+   - Action: Start Program → Select `SnapOCR.exe`
+5. Save
+
+### Linux
+
+**GNOME (Ubuntu, Fedora, etc.)**
+
+1. Open **Settings** → **Keyboard**
+2. Scroll down → **View and Customize Shortcuts**
+3. Click **Custom Shortcuts** → **Add Shortcut**
+4. Name: `SnapOCR`
+5. Command: `/path/to/SnapOCR`
+6. Set your shortcut (e.g., `Ctrl+Shift+O`)
+
+**KDE Plasma**
+
+1. Open **System Settings** → **Shortcuts**
+2. Click **Edit** → **New** → **Global Shortcut** → **Command/URL**
+3. Set trigger to your preferred shortcut
+4. Set action to: `/path/to/SnapOCR`
+
+**i3 / sway**
+
+Add to your config (`~/.config/i3/config` or `~/.config/sway/config`):
+```
+bindsym $mod+Shift+o exec /path/to/SnapOCR
 ```
 
 ## Configuration
@@ -154,8 +172,6 @@ Config file locations:
 {
   "hotkey": "ctrl+shift+o",
   "language": "eng+chi_sim",
-  "auto_paste": true,
-  "paste_delay_ms": 500,
   "latex_conversion": false,
   "tesseract_path": null,
   "show_notification": true
@@ -164,53 +180,52 @@ Config file locations:
 
 | Option | Description |
 |--------|-------------|
-| `hotkey` | Global hotkey combination |
 | `language` | Tesseract language code(s) |
-| `auto_paste` | Auto-paste after copying |
-| `paste_delay_ms` | Delay before auto-paste |
 | `latex_conversion` | Enable LaTeX OCR for math |
-| `tesseract_path` | Custom Tesseract executable path |
+| `tesseract_path` | Custom Tesseract path (optional, uses bundled version by default) |
 
-## Platform-Specific Notes
+## Supported Languages
 
-### macOS
+SnapOCR includes English (`eng`) and Simplified Chinese (`chi_sim`) by default. To add more languages:
 
-- Uses built-in `screencapture` command for screenshots
-- Uses `pbcopy`/`pbpaste` for clipboard
-- **Accessibility Permission**: Required for global hotkeys and auto-paste
-  - System Preferences → Security & Privacy → Privacy → Accessibility
+1. Download trained data from [tessdata](https://github.com/tesseract-ocr/tessdata)
+2. Place `.traineddata` files in the `tessdata` directory:
+   - **macOS**: `SnapOCR.app/Contents/Resources/tessdata/`
+   - **Windows**: Same directory as `SnapOCR.exe`
+   - **Linux**: Same directory as the executable
 
-### Windows
+## Building from Source
 
-- Uses `mss` library with tkinter overlay for region selection
-- Uses `pyperclip` for clipboard operations
-- May require pywin32 for window capture: `pip install pywin32`
+### Prerequisites
 
-### Linux
-
-- Uses `scrot` (recommended) or ImageMagick `import` for screenshots
-- Uses `xclip` or `xsel` for clipboard
-- Install: `sudo apt install scrot xclip`
-
-## Building Standalone Executables
-
-### macOS
+- Python 3.9+
+- Tesseract OCR (for development)
 
 ```bash
-cd scripts
-./build_macos.sh
+# macOS
+brew install tesseract tesseract-lang
+
+# Linux
+sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-chi-sim
+
+# Windows - download from UB Mannheim
 ```
 
-Output: `dist/SnapOCR.app`
+### Build
 
-### Windows
+```bash
+# Install dependencies
+pip install -r requirements.txt
+pip install pyinstaller
 
-```powershell
-cd scripts
-.\build_windows.ps1
+# Build for current platform
+python -m PyInstaller SnapOCR.spec
 ```
 
-Output: `dist\SnapOCR.exe`
+Or use the platform-specific scripts:
+- **macOS**: `./scripts/build_macos.sh`
+- **Windows**: `.\scripts\build_windows.ps1`
+- **Linux**: `./scripts/build_linux.sh`
 
 ## Project Structure
 
@@ -221,21 +236,23 @@ SnapOCR/
 │   ├── main.py              # Entry point
 │   ├── core/
 │   │   ├── ocr.py           # OCR + LaTeX extraction
-│   │   ├── clipboard.py     # Clipboard + auto-paste
+│   │   ├── clipboard.py     # Clipboard operations
 │   │   └── config.py        # Config management
-│   ├── platform/
-│   │   ├── base.py          # Abstract base classes
-│   │   ├── linux.py         # Linux implementation
-│   │   ├── macos.py         # macOS implementation
-│   │   └── windows.py       # Windows implementation
-│   └── hotkey/
-│       ├── manager.py       # Hotkey registration
-│       └── setup_wizard.py  # Interactive hotkey config
+│   └── platform/
+│       ├── base.py          # Abstract base classes
+│       ├── linux.py         # Linux implementation
+│       ├── macos.py         # macOS implementation
+│       ├── macos_native.py  # macOS native APIs
+│       └── windows.py       # Windows implementation
 ├── resources/
-│   └── tessdata/            # Language data (eng, chi_sim)
+│   ├── Info.plist           # macOS app metadata
+│   └── SnapOCR.entitlements # macOS sandbox entitlements
 ├── scripts/
 │   ├── build_macos.sh
-│   └── build_windows.ps1
+│   ├── build_windows.ps1
+│   └── build_linux.sh
+├── .github/workflows/
+│   └── build.yml            # Cross-platform CI/CD
 ├── requirements.txt
 └── README.md
 ```
@@ -245,31 +262,37 @@ SnapOCR/
 ### "No text detected"
 
 - Ensure the text in the screenshot is clear and readable
-- Install appropriate Tesseract language packs
-- Try adjusting the region selection
+- Try adjusting the region selection for better contrast
+- Check if the correct language is configured
 
-### "tesseract is not installed"
+### macOS: "Screen Recording" permission required
 
-Install Tesseract OCR:
-- **macOS**: `brew install tesseract`
-- **Windows**: Download from UB Mannheim releases
-- **Linux**: `sudo apt install tesseract-ocr`
+1. **System Settings** → **Privacy & Security** → **Screen Recording**
+2. Add SnapOCR to the allowed apps
 
-### "Could not copy to clipboard"
+### macOS: App is "damaged" or "unidentified developer"
 
-- **Linux**: Install xclip: `sudo apt install xclip`
-- **macOS**: Check Terminal has clipboard access in Security settings
+```bash
+xattr -cr /Applications/SnapOCR.app
+```
 
-### Hotkeys not working (macOS)
+### Windows: SmartScreen warning
 
-Grant Accessibility permission:
-1. System Preferences → Security & Privacy → Privacy
-2. Select "Accessibility"
-3. Add Terminal or your Python IDE to the list
+Click "More info" → "Run anyway"
+
+### Linux: Screenshot not working
+
+Ensure you have a screenshot tool installed:
+```bash
+# Ubuntu/Debian
+sudo apt install scrot
+
+# Or use mss (bundled)
+```
 
 ### LaTeX conversion not working
 
-Ensure pix2tex and dependencies are installed:
+Install additional dependencies:
 ```bash
 pip install pix2tex torch transformers
 ```
@@ -278,6 +301,9 @@ pip install pix2tex torch transformers
 
 This project is open source. See the LICENSE file for details.
 
-## Contributing
+## Acknowledgments
 
-Contributions are welcome! Feel free to submit issues or pull requests.
+- [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) - OCR engine
+- [pytesseract](https://github.com/madmaze/pytesseract) - Python wrapper
+- [Pillow](https://python-pillow.org/) - Image processing
+- [mss](https://github.com/BoboTiG/python-mss) - Cross-platform screenshots
