@@ -28,21 +28,24 @@ pyinstaller `
     --name "SnapOCR" `
     --onefile `
     --windowed `
-    --icon resources/icon.ico `
-    --add-data "resources/tessdata;resources/tessdata" `
     --hidden-import "PIL._tkinter_finder" `
     --hidden-import "pytesseract" `
-    --hidden-import "pynput" `
-    --hidden-import "pyautogui" `
     --hidden-import "mss" `
-    snapocr/main.py
+    --hidden-import "snapocr" `
+    --hidden-import "snapocr.main" `
+    --hidden-import "snapocr.core.config" `
+    --hidden-import "snapocr.core.ocr" `
+    --hidden-import "snapocr.core.clipboard" `
+    --hidden-import "snapocr.platform.base" `
+    --hidden-import "snapocr.platform.windows" `
+    --add-data "snapocr;snapocr" `
+    --exclude-module "pynput" `
+    --exclude-module "pyautogui" `
+    run.py
 
 Write-Host ""
 Write-Host "Build complete!"
 Write-Host "Output: dist\SnapOCR.exe"
 Write-Host ""
-Write-Host "Note: For distribution, you may want to:"
-Write-Host "  1. Sign the executable with signtool"
-Write-Host "  2. Create an installer with NSIS or Inno Setup"
-Write-Host ""
-Write-Host "Tesseract and tessdata need to be bundled separately or installed on the target machine."
+Write-Host "Note: Tesseract OCR must be installed on the target machine."
+Write-Host "Download from: https://github.com/UB-Mannheim/tesseract/wiki"
