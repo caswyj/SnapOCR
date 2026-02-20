@@ -24,9 +24,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/tesseract
+            /opt/homebrew/Cellar/tcl-tk
+            /opt/homebrew/Cellar/python-tk
+          key: ${{ runner.os }}-brew-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-brew-
+
       - name: Install Homebrew dependencies
         run: |
-          brew install tesseract tesseract-lang tcl-tk python-tk@3.11
+          # Install only what we need (no tesseract-lang, we download specific languages)
+          brew install tesseract tcl-tk python-tk@3.11
 
       - name: Set up Python with Homebrew
         run: |
@@ -47,7 +60,10 @@ jobs:
             fi
           done
 
-          cp /opt/homebrew/share/tessdata/eng.traineddata tessdata/
+          # Download only needed language data
+          cp /opt/homebrew/share/tessdata/eng.traineddata tessdata/ 2>/dev/null || \
+            curl -L -o tessdata/eng.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
+
           cp /opt/homebrew/share/tessdata/chi_sim.traineddata tessdata/ 2>/dev/null || \
             curl -L -o tessdata/chi_sim.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata
 
