@@ -9,6 +9,29 @@ import os
 import sys
 from typing import Optional
 
+
+def _setup_windows_dpi():
+    """Setup Windows DPI awareness for correct screen coordinates."""
+    if sys.platform == 'win32':
+        try:
+            import ctypes
+            # Try to set Per-Monitor DPI Aware (Windows 8.1+)
+            # This ensures correct coordinates on scaled displays
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+        except (AttributeError, OSError):
+            # Fallback for older Windows versions
+            try:
+                import ctypes
+                ctypes.windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+
+# Setup DPI awareness before any UI operations
+_setup_windows_dpi()
+
 from .core.config import Config
 from .core.ocr import extract_text, format_result
 from .core.clipboard import ClipboardManager
