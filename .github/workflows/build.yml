@@ -31,22 +31,29 @@ jobs:
             ~/Library/Caches/Homebrew
             /opt/homebrew/Cellar/tesseract
             /opt/homebrew/Cellar/tcl-tk
-            /opt/homebrew/Cellar/python-tk
           key: ${{ runner.os }}-brew-${{ hashFiles('.github/workflows/build.yml') }}
           restore-keys: |
             ${{ runner.os }}-brew-
 
       - name: Install Homebrew dependencies
         run: |
-          # Install only what we need (no tesseract-lang, we download specific languages)
-          brew install tesseract tcl-tk python-tk@3.11
+          # Install tesseract and tcl-tk from Homebrew
+          brew install tesseract tcl-tk
 
-      - name: Set up Python with Homebrew
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        env:
+          # Link with Homebrew's tcl-tk
+          TCL_LIBRARY: /opt/homebrew/opt/tcl-tk/lib/tcl8.6
+          TK_LIBRARY: /opt/homebrew/opt/tcl-tk/lib/tk8.6
         run: |
-          # Use Homebrew Python for proper Tcl/Tk support
-          /opt/homebrew/opt/python@3.11/bin/python3 -m pip install --upgrade pip
-          /opt/homebrew/opt/python@3.11/bin/python3 -m pip install -r requirements.txt
-          /opt/homebrew/opt/python@3.11/bin/python3 -m pip install pyinstaller
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
 
       - name: Download Tesseract for macOS
         run: |
@@ -83,12 +90,11 @@ jobs:
           ls -la tcltk/lib/
 
       - name: Build macOS app
+        env:
+          TCL_LIBRARY: /opt/homebrew/opt/tcl-tk/lib/tcl8.6
+          TK_LIBRARY: /opt/homebrew/opt/tcl-tk/lib/tk8.6
         run: |
-          # Set TCL/TK environment variables for Homebrew Python
-          export TCL_LIBRARY="/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
-          export TK_LIBRARY="/opt/homebrew/opt/tcl-tk/lib/tk8.6"
-
-          /opt/homebrew/opt/python@3.11/bin/python3 -m PyInstaller \
+          python -m PyInstaller \
             --name "SnapOCR" \
             --windowed \
             --onedir \
