@@ -9,7 +9,7 @@
     <key>CFBundleExecutable</key>
     <string>SnapOCR</string>
     <key>CFBundleIconFile</key>
-    <string>SnapOCR</string>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.snapocr.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -19,22 +19,22 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.0.0</string>
+    <string>2.1.0</string>
     <key>CFBundleVersion</key>
-    <string>200</string>
+    <string>210</string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.15</string>
+    <string>11.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright 2024 SnapOCR. All rights reserved.</string>
-    <key>NSMainNibFile</key>
-    <string></string>
+    <string>Copyright 2025 SnapOCR. All rights reserved.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>NSScreenCaptureUsageDescription</key>
-    <string>SnapOCR needs screen capture access to perform OCR on selected screen regions.</string>
+    <string>SnapOCR needs screen capture access to recognize text from screenshots.</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>SnapOCR uses Apple Events for screen capture functionality.</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
 </dict>
 </plist>
