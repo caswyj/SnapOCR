@@ -190,36 +190,37 @@ class WindowsScreenshotCapture(BaseScreenshotCapture):
 
 
 class WindowsClipboardManager(BaseClipboardManager):
-    """Windows clipboard manager using pyperclip."""
+    """Windows clipboard manager using Windows API directly."""
 
     def __init__(self):
         """Initialize Windows clipboard manager."""
-        try:
-            import pyperclip
-            self._pyperclip = pyperclip
-        except ImportError:
-            self._pyperclip = None
+        pass
 
     def copy(self, text: str) -> bool:
-        """Copy text to clipboard."""
-        if self._pyperclip:
-            try:
-                self._pyperclip.copy(text)
-                return True
-            except Exception as e:
-                print(f"Error copying to clipboard: {e}")
-
-        # Fallback to ctypes
+        """Copy text to clipboard using Windows API."""
         try:
             import ctypes
+            from ctypes import wintypes
 
-            # Open clipboard
-            if not ctypes.windll.user32.OpenClipboard(0):
+            user32 = ctypes.windll.user32
+            kernel32 = ctypes.windll.kernel32
+
+            # Ensure clipboard is closed first
+            user32.CloseClipboard()
+
+            # Try multiple times in case clipboard is locked by another app
+            for attempt in range(3):
+                if user32.OpenClipboard(0):
+                    break
+                import time
+                time.sleep(0.05)
+            else:
+                print("Error: Could not open clipboard after 3 attempts")
                 return False
 
             try:
-                # Empty clipboard
-                ctypes.windll.user32.EmptyClipboard()
+                # Empty clipboard first
+                user32.EmptyClipboard()
 
                 # Set clipboard data
                 CF_UNICODETEXT = 13
@@ -227,59 +228,62 @@ class WindowsClipboardManager(BaseClipboardManager):
 
                 # Allocate global memory
                 GMEM_MOVEABLE = 0x0002
-                h_mem = ctypes.windll.kernel32.GlobalAlloc(GMEM_MOVEABLE, len(text_bytes))
+                h_mem = kernel32.GlobalAlloc(GMEM_MOVEABLE, len(text_bytes))
                 if not h_mem:
                     return False
 
-                p_mem = ctypes.windll.kernel32.GlobalLock(h_mem)
+                p_mem = kernel32.GlobalLock(h_mem)
                 if not p_mem:
-                    ctypes.windll.kernel32.GlobalFree(h_mem)
+                    kernel32.GlobalFree(h_mem)
                     return False
 
                 ctypes.memmove(p_mem, text_bytes, len(text_bytes))
-                ctypes.windll.kernel32.GlobalUnlock(h_mem)
+                kernel32.GlobalUnlock(h_mem)
 
-                if not ctypes.windll.user32.SetClipboardData(CF_UNICODETEXT, h_mem):
-                    ctypes.windll.kernel32.GlobalFree(h_mem)
+                if not user32.SetClipboardData(CF_UNICODETEXT, h_mem):
+                    kernel32.GlobalFree(h_mem)
                     return False
 
                 return True
             finally:
-                ctypes.windll.user32.CloseClipboard()
+                user32.CloseClipboard()
+
         except Exception as e:
-            print(f"Error with ctypes clipboard: {e}")
+            print(f"Error copying to clipboard: {e}")
             return False
 
     def paste(self) -> str:
-        """Get text from clipboard."""
-        if self._pyperclip:
-            try:
-                return self._pyperclip.paste()
-            except Exception:
-                pass
-
-        # Fallback to ctypes
+        """Get text from clipboard using Windows API."""
         try:
             import ctypes
 
-            if not ctypes.windll.user32.OpenClipboard(0):
+            user32 = ctypes.windll.user32
+            kernel32 = ctypes.windll.kernel32
+
+            # Try multiple times in case clipboard is locked
+            for attempt in range(3):
+                if user32.OpenClipboard(0):
+                    break
+                import time
+                time.sleep(0.05)
+            else:
                 return ""
 
             try:
                 CF_UNICODETEXT = 13
-                h_mem = ctypes.windll.user32.GetClipboardData(CF_UNICODETEXT)
+                h_mem = user32.GetClipboardData(CF_UNICODETEXT)
                 if not h_mem:
                     return ""
 
-                p_mem = ctypes.windll.kernel32.GlobalLock(h_mem)
+                p_mem = kernel32.GlobalLock(h_mem)
                 if not p_mem:
                     return ""
 
                 # Read the data
                 text = ctypes.wstring_at(p_mem)
-                ctypes.windll.kernel32.GlobalUnlock(h_mem)
+                kernel32.GlobalUnlock(h_mem)
                 return text
             finally:
-                ctypes.windll.user32.CloseClipboard()
+                user32.CloseClipboard()
         except Exception:
             return ""

@@ -2,12 +2,8 @@
 Cross-platform clipboard management.
 """
 
+import platform
 from typing import Optional
-
-try:
-    import pyperclip
-except ImportError:
-    pyperclip = None
 
 
 class ClipboardManager:
@@ -22,7 +18,6 @@ class ClipboardManager:
     def _get_platform_clipboard(self):
         """Get platform-specific clipboard implementation."""
         if self._platform_clipboard is None:
-            import platform
             system = platform.system().lower()
 
             if system == 'darwin':
@@ -48,23 +43,11 @@ class ClipboardManager:
             True if successful, False otherwise.
         """
         try:
-            # Try pyperclip first as it's cross-platform
-            if pyperclip is not None:
-                pyperclip.copy(text)
-            else:
-                # Fall back to platform-specific implementation
-                clipboard = self._get_platform_clipboard()
-                return clipboard.copy(text)
-            return True
+            clipboard = self._get_platform_clipboard()
+            return clipboard.copy(text)
         except Exception as e:
             print(f"Error copying to clipboard: {e}")
-            # Try platform-specific as fallback
-            try:
-                clipboard = self._get_platform_clipboard()
-                return clipboard.copy(text)
-            except Exception as e2:
-                print(f"Platform clipboard also failed: {e2}")
-                return False
+            return False
 
     def paste(self) -> str:
         """
@@ -74,15 +57,8 @@ class ClipboardManager:
             Clipboard text or empty string.
         """
         try:
-            if pyperclip is not None:
-                return pyperclip.paste()
-            else:
-                clipboard = self._get_platform_clipboard()
-                return clipboard.paste()
+            clipboard = self._get_platform_clipboard()
+            return clipboard.paste()
         except Exception as e:
             print(f"Error reading clipboard: {e}")
-            try:
-                clipboard = self._get_platform_clipboard()
-                return clipboard.paste()
-            except Exception:
-                return ""
+            return ""
